@@ -2,8 +2,9 @@ from scipy.integrate import solve_ivp
 from scipy.integrate import cumtrapz
 import numpy as np
 import matplotlib.pyplot as plt
+from data import *
 
-C_list = np.linspace(1, 300, 300//10)
+C_list = np.linspace(3000, 10000, 200)
 
 
 iconds=np.array([1., 0.])
@@ -30,7 +31,7 @@ def eval(C):
 
 
 def bisec(f, x1, x2, y1, y2):
-	for i in range(15):
+	for i in range(25):
 		x_mid = (x1 + x2)/2
 		y_mid = f(x_mid)
 		if y_mid*y1 < 0:
@@ -42,7 +43,8 @@ def bisec(f, x1, x2, y1, y2):
 	return [x1, x2]
 
 last_val = []
-
+'''
+#grobo določi
 for i in range(len(C_list)):
 	C = C_list[i]
 	res1 = solve_ivp(gen, [10**(-8), 1], iconds,method='DOP853',rtol=1e-14,atol=1e-14)
@@ -54,14 +56,25 @@ for i in range(len(last_val)-1):
 	if last_val[i]*last_val[i+1] < 0:
 		intervali_nicel.append([C_list[i], C_list[i+1]])
 
+#natačno določi
 for i in range(len(intervali_nicel)):
 	x = bisec(eval, intervali_nicel[i][0], intervali_nicel[i][1], eval(intervali_nicel[i][0]), eval(intervali_nicel[i][1]))
-	print(x)
+	print('interval', x)
 	intervali_nicel[i] = (x[0]+x[1])/2
+'''
+
+for i in range(len(intervali_nicel)):
+	x = intervali_nicel[i]
+	intervali_nicel[i] = (x[0]+x[1])/2
+
+
+#za že narejen seznam
 
 func_list = np.array([[0. for _ in range(100)] for _ in range(len(intervali_nicel))])
 t_list = np.linspace(10**(-8), 1, 100)
 print(intervali_nicel)
+
+#najde rešitve
 for i in range(len(intervali_nicel)):
 	C = intervali_nicel[i]
 	res = solve_ivp(gen, [10**(-8), 1], iconds, t_eval=t_list, method='DOP853',rtol=1e-14,atol=1e-14)
@@ -70,10 +83,26 @@ for i in range(len(intervali_nicel)):
 #plt.legend()
 #plt.show()
 
+#preveri ortogonalnost
 for i in range(len(func_list)):
-	print(1)
-	plt.plot(t_list, func_list[0]*func_list[i]*t_list)
-	print(cumtrapz(func_list[0]*func_list[i]*t_list, t_list))
+	#plt.plot(t_list, func_list[1]*func_list[i]*t_list*(1-t_list**2))
+	a = cumtrapz(func_list[0]*func_list[0]*t_list*(1-t_list**2), t_list)[-1]
+	print('ortogonal', cumtrapz(func_list[0]*func_list[i]*t_list*(1-t_list**2), t_list)[-1]/a)
+#plt.show()
+
+T_koef = [0 for i in range(len(intervali_nicel))]
+
+for i in range(len(intervali_nicel)):
+	norm = cumtrapz(func_list[i]*func_list[i]*t_list*(1-t_list**2), t_list)[-1]
+	T_koef[i] = cumtrapz(func_list[i]*t_list*(1-t_list**2), t_list)[-1] / norm
+
+print(T_koef)
+
+bound = np.array([0. for _ in range(len(func_list[0]))])
+for i in range(len(T_koef)):
+	bound += func_list[i]*T_koef[i]
+
+plt.plot(t_list, bound)
 plt.show()
 
 
